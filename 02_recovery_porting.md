@@ -74,5 +74,5 @@ To change the device identity from "Xiaomi Poco M3" to "Realme 7i":
     ```
 5.  **Final Build:** Repack the boot image with the *modified* ramdisk.
     ```bash
-mkbootimg ... --ramdisk ramdisk-mod.gz -o Roman_TWRP_RMX2103.img
-```
+    mkbootimg ... --ramdisk ramdisk-mod.gz -o Roman_TWRP_RMX2103.img
+    ```
