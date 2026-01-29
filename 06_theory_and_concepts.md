@@ -1,25 +1,20 @@
 # Theory & Concepts: Deep Dive
 
-This document explains the underlying principles, architecture, and mathematics behind the advanced modifications performed on the Realme RMX2103.
+This document explains the principles, architecture, and mathematics behind advanced Android partitioning.
 
 ## 1. Android Storage Architecture
 
-Modern Android devices (Android 10+) use a hierarchical storage system designed for flexibility and safe updates (Project Treble).
+Modern Android devices (Android 10+) use a hierarchical storage system.
 
 ### The Physical Layer (GPT)
-At the lowest level, the storage chip (UFS or eMMC) is divided into **Physical Partitions** defined by the **GUID Partition Table (GPT)**.
-- **Tools:** `parted`, `gdisk`, `sgdisk`.
-- **Identifiers:** `/dev/block/sda1`, `/dev/block/sda2` (or `mmcblk0p1`).
-- **Critical Partitions:**
-    - `xbl`, `abl` (Bootloaders - DO NOT TOUCH).
-    - `boot` (Kernel).
-    - `userdata` (Your photos, apps).
-    - `super` (The container).
+The storage chip (UFS/eMMC) is divided into **Physical Partitions** defined by the **GUID Partition Table (GPT)**.
+- **Tools:** `parted`, `gdisk`.
+- **Key Partitions:** `super` (the container), `userdata` (user files), and bootloaders.
 
 ### The Logical Layer (Dynamic Partitions)
-The `super` partition is a **Physical** partition that acts as a container for **Logical** partitions.
-- **Mechanism:** The `super` partition starts with a **Metadata Header** (Geometry). This header maps "logical" names (like `system_a`) to physical "extents" (ranges of sectors) inside the `super` partition.
-- **The Catch:** Resizing the *physical* `super` partition (using `parted`) does **not** update this Metadata Header. The OS will still see the old size until you generate new metadata (using `lpmake`).
+The `super` partition is a physical container for **Logical** partitions.
+- **Mechanism:** The `super` partition contains a **Metadata Header**. This header maps logical names (`system`, `vendor`) to physical sectors inside the `super` partition.
+- **The Challenge:** Resizing the *physical* `super` partition does not update the *metadata*. You must use `lpmake` to expand the logical boundaries.
 
 ---
 
@@ -27,17 +22,13 @@ The `super` partition is a **Physical** partition that acts as a container for *
 
 ### Units: Sectors vs. Bytes
 - **Sector:** The smallest addressable unit of storage.
-- **UFS Standard:** Usually **4096 bytes (4KB)** per sector.
-- **Rule:** Always verify sector size with `parted /dev/block/sda print`.
+- **Standard:** Usually **4096 bytes (4KB)** per sector for UFS.
+- **Verification:** Always check sector size with `parted /dev/block/sda print`.
 
 ### The Formulas
 
 #### A. Calculating Partition Size in Sectors
 $$ \text{Sectors} = \frac{\text{Desired Size (Bytes)}}{\text{Sector Size (Bytes)}} $$
-
-*Example: You want a 12 GiB partition.*
-$$ 12 \times 1024^3 = 12,884,901,888 \text{ bytes} $$
-$$ \frac{12,884,901,888}{4096} = 3,145,728 \text{ sectors} $$
 
 #### B. Calculating End Sector
 $$ \text{End} = \text{Start} + \text{Length} - 1 $$
@@ -46,16 +37,18 @@ $$ \text{End} = \text{Start} + \text{Length} - 1 $$
 
 ## 3. Recovery Porting Theory
 
-Why did You mix parts from a Realme 7i and a Poco M3?
-
 ### The Kernel vs. Ramdisk
-A `recovery.img` consists of two main parts packed together:
-1.  **Kernel (`zImage`):** The core of the OS. It contains the **Drivers** for your specific display, touch panel, storage controller, and battery.
-2.  **Ramdisk:** A small filesystem loaded into memory. It contains the **Programs** (TWRP executable, ADB daemon, init scripts).
+A `recovery.img` contains:
+1.  **Kernel:** Hardware drivers (display, touch, storage). Must match the device hardware.
+2.  **Ramdisk:** The software environment (TWRP/OrangeFox). Can be borrowed from similar CPUs.
 
-### The "Porting" Logic
-- **Problem:** You had no TWRP for RMX2103.
-- **Solution:**
-    - **Stock Kernel:** Kept the RMX2103 kernel.
-    - **Custom Ramdisk:** Took the ramdisk from Poco M3 (Snapdragon 662 - same CPU).
-- **Result:** The Poco M3 software runs on top of the RMX2103 hardware drivers.
+### The Porting Logic
+By combining the **Stock Kernel** (to ensure the screen/touch works) with a **Donor Ramdisk** (to provide the TWRP interface), you can create a functional custom recovery for devices that don't have one.
+
+---
+
+## 4. Risks & Cautions
+
+1.  **Partition Alignment:** Always try to align partitions to 1MB boundaries (256 sectors in 4KB/sector devices) for optimal performance.
+2.  **Sequential Order:** Partitions on the GPT must be contiguous. If you expand a partition, all subsequent partitions must be deleted and recreated at shifted offsets.
+3.  **Wiping Data:** Modifying the `userdata` start/end points will corrupt the filesystem, requiring a full format.

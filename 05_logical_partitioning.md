@@ -1,28 +1,27 @@
 # Logical Partitioning & Metadata Hack
 
-## The Problem (Part 2)
-After physically resizing the `super` partition to 12GB, flashing the stock `super.img` caused a conflict. The stock metadata header was "locked" to the original 7.8GB size, causing FastbootD to reject larger GSIs with "Not enough space" and "Failed to write partition table".
+## The Concept
+After physically resizing the `super` partition (e.g., to 12GB), flashing a stock `super.img` will reset the internal metadata to the stock size (e.g., 7.8GB). This causes FastbootD to reject larger GSIs because it believes the "logical" room is still small.
 
 ## The Solution: Custom Metadata
-To utilize the new 12GB physical space, You had to destroy the stock metadata and create a new "Blueprint" (super_empty.img) that acknowledges the full 12GB.
+To utilize the new physical space, you must create a new "Blueprint" (`super_empty.img`) that acknowledges the full physical capacity.
 
-## Steps Taken
+## Steps to Execute
 
-### 1. Unpacking the Stock Super
-You used `lpunpack` to extract the individual partition images from the stock `super_bd.img`. This allows you to restore the critical Realme drivers (`vendor`, `my_*`) while leaving out the bulky stock `system` and `product`.
+### 1. Unpack the Stock Super
+Extract the individual partition images from the stock `super.img`. This allows you to selectively restore critical drivers (`vendor`, `my_*`) while leaving space for a custom `system`.
 
 ```bash
-mkdir -p ~/cook/stock_super_contents
-lpunpack /data/systools/android/rmx2103/super_bd.img ~/cook/stock_super_contents
+mkdir -p stock_super_contents
+lpunpack super_bd.img stock_super_contents
 ```
 
-### 2. Generating the 12GB Metadata
-You used `lpmake` to build a new logical structure. 
-- **Device Size:** 12,884,901,888 bytes (12 GiB)
-- **Metadata Size:** 65536
-- **Partitions:** Defined all stock partitions (`vendor`, `my_product`, etc.) as `readonly`.
+### 2. Generate the New Metadata
+Use `lpmake` to build a new logical structure. 
+- **Device Size:** Set to the new physical size (e.g., 12 GiB).
+- **Partitions:** Define all required partitions (`system`, `vendor`, `my_product`, etc.).
 
-**The Command:**
+**Example Command:**
 ```bash
 lpmake -d 12884901888 \
        -m 65536 \
@@ -30,27 +29,27 @@ lpmake -d 12884901888 \
        -g qti_dynamic_partitions:12880707584 \
        -p "system:readonly:0:qti_dynamic_partitions" \
        -p "vendor:readonly:0:qti_dynamic_partitions" \
-       ... (all other partitions) ... \
+       ... \
        -F -S \
-       -o ~/cook/super_empty_sparse.img
+       -o super_empty_sparse.img
 ```
 
-### 3. Flashing the New Blueprint
+### 3. Flash the New Metadata
 In **Bootloader** mode:
 ```bash
-fastboot flash super ~/cook/super_empty_sparse.img
+fastboot flash super super_empty_sparse.img
 ```
 
-### 4. Restoring Components in FastbootD
-You entered **FastbootD** to flash the extracted `.img` files into their new logical slots.
+### 4. Restore Components in FastbootD
+Enter **FastbootD** and flash the extracted `.img` files into their respective slots.
 ```bash
 fastboot flash vendor vendor.img
 fastboot flash odm odm.img
-# ... (flashed all my_* images) ...
+# ... flash other required partitions ...
 ```
 
 ### 5. Final GSI Install
-With the metadata now allowing up to 12GB of total logical space, You finally flashed the Gapps GSI:
+Now that the metadata reflects the full 12GB space, flash the GSI:
 ```bash
-fastboot flash system infinity-os-g-system.img
+fastboot flash system your_gsi_image.img
 ```
