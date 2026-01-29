@@ -11,7 +11,7 @@
 
 ### 2. "Volume Full" when flashing TWRP
 - **Cause:** The generic Poco M3 TWRP image (134MB) was larger than the physical recovery partition (100MB).
-- **Fix:** We used `mkbootimg` to repack the TWRP ramdisk with the device's Stock Kernel. This stripped out the large generic kernel and made the image ~53MB.
+- **Fix:** You used `mkbootimg` to repack the TWRP ramdisk with the device's Stock Kernel. This stripped out the large generic kernel and made the image ~53MB.
 
 ### 3. ADB Unauthorized / Offline in Recovery
 - **Cause:** The ported recovery lacked the correct USB controller initialization in the kernel command line.

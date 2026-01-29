@@ -7,10 +7,10 @@
 2.  **ADB Access** established.
 3.  **Parted Binary** pushed to `/sbin/`.
 
-## The Procedure (Executed)
+## The Procedure
 
 ### 1. Backup
-We created `super_bd.img` from stock files and backed up the small partitions that act as obstacles between `super` and `userdata`.
+Ensure all critical partitions are backed up before proceeding.
 
 ```bash
 adb pull /dev/block/sda7 cache.img
@@ -21,27 +21,26 @@ adb pull /dev/block/sda11 metadata.img
 ```
 
 ### 2. Analysis
-We used `parted` to identify the sector boundaries.
-- **Original Super:** 8712s - 1929735s (~7.8 GB)
-- **Original Userdata:** 2073128s - 30658554s
+Use `parted` to identify the sector boundaries.
+- **Example Super:** 8712s - 1929735s (~7.8 GB)
+- **Example Userdata:** 2073128s - 30658554s
 
-We calculated a new layout to give `super` **12 GiB** (3145728 sectors).
+Calculate the new layout to increase the `super` partition size (e.g., to 12 GiB).
 
 ### 3. The Resize Operation (Parted)
-We ran a batch command in ADB Shell to delete partitions 6-12 and recreate them with shifted start/end sectors.
+Run a batch command in ADB Shell to delete partitions and recreate them with shifted sectors.
 
-**New Layout:**
+**Example New Layout:**
 - **Super (6):** 8712s - 3154439s (12 GiB)
-- **Cache (7):** Shifted to 3154440s
-- **Recovery (8):** Shifted to 3269128s
+- **Cache (7):** Shifted accordingly
+- **Recovery (8):** Shifted accordingly
 - ... and so on.
-- **Userdata (12):** Starts at 3297832s (Shrunk).
 
 ### 4. Restoration (Fastboot)
-After partitioning, we rebooted to the Bootloader to reload the table and restore data.
+After partitioning, reboot to the Bootloader to reload the table and restore the data.
 
 ```bash
-# Repair the "Obstacles"
+# Flash the "Obstacles" back to new sectors
 fastboot flash recovery recovery.img
 fastboot flash cache cache.img
 fastboot flash vbmeta_system vbmeta_system.img
@@ -52,6 +51,6 @@ fastboot flash metadata metadata.img
 fastboot format userdata
 
 # Flash the Super container
-# (See 05_logical_partitioning.md for why flashing the stock super here is not enough)
-fastboot flash super super_bd.img
+# Note: Flashing a stock super.img will reset metadata to stock size.
+# See 05_logical_partitioning.md for the metadata hack.
 ```

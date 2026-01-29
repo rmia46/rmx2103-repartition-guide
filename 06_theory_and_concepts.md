@@ -35,7 +35,7 @@ The `super` partition is a **Physical** partition that acts as a container for *
 #### A. Calculating Partition Size in Sectors
 $$ \text{Sectors} = \frac{\text{Desired Size (Bytes)}}{\text{Sector Size (Bytes)}} $$
 
-*Example: We want a 12 GiB partition.*
+*Example: You want a 12 GiB partition.*
 $$ 12 \times 1024^3 = 12,884,901,888 \text{ bytes} $$
 $$ \frac{12,884,901,888}{4096} = 3,145,728 \text{ sectors} $$
 
@@ -46,7 +46,7 @@ $$ \text{End} = \text{Start} + \text{Length} - 1 $$
 
 ## 3. Recovery Porting Theory
 
-Why did we mix parts from a Realme 7i and a Poco M3?
+Why did You mix parts from a Realme 7i and a Poco M3?
 
 ### The Kernel vs. Ramdisk
 A `recovery.img` consists of two main parts packed together:
@@ -54,7 +54,7 @@ A `recovery.img` consists of two main parts packed together:
 2.  **Ramdisk:** A small filesystem loaded into memory. It contains the **Programs** (TWRP executable, ADB daemon, init scripts).
 
 ### The "Porting" Logic
-- **Problem:** We had no TWRP for RMX2103.
+- **Problem:** You had no TWRP for RMX2103.
 - **Solution:**
     - **Stock Kernel:** Kept the RMX2103 kernel.
     - **Custom Ramdisk:** Took the ramdisk from Poco M3 (Snapdragon 662 - same CPU).
